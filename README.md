@@ -4,8 +4,16 @@ This repository is a fork of the official [OpenTitan
 repository](https://github.com/lowRISC/opentitan/) extended with changes to the
 hardware design as well as the Python simulator for OTBN in order to provide
 support for ML-KEM & ML-DSA. It accompanies the paper titled "Towards ML-KEM &
-ML-DSA on OpenTitan". In the following, we will give a description to guide the
-reader on how to re-run our tests and reproduce the results.
+ML-DSA on OpenTitan". 
+
+All software and hardware described in this paper will be made publicly
+available under permissive licenses compatible to the OpenTitan license. At this
+time, we are still preparing for their final publication. However, you can find
+the code in the state of the submission of the paper (11/2024) under [this
+link](https://drive.proton.me/urls/5505QX8SX0#ndJGQEdzXodZ).
+
+In the following, we will give a description to guide the reader on how to
+re-run our tests and reproduce the results.
 
 ## Getting started
 For setting up the software and testing environment, we generally refer to the
