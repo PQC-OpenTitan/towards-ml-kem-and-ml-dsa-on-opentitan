@@ -3,24 +3,21 @@
 This repository is a fork of the official [OpenTitan
 repository](https://github.com/lowRISC/opentitan/) extended with changes to the
 hardware design as well as the Python simulator for OTBN in order to provide
-support for ML-KEM & ML-DSA. It accompanies the paper titled "Towards ML-KEM &
-ML-DSA on OpenTitan". 
-
-All software and hardware described in this paper will be made publicly
-available under permissive licenses compatible to the OpenTitan license. At this
-time, we are still preparing for their final publication. However, you can find
-the code in the state of the submission of the paper (11/2024) under [this
-link](https://drive.proton.me/urls/5505QX8SX0#ndJGQEdzXodZ).
-
-In the following, we will give a description to guide the reader on how to
-re-run our tests and reproduce the results.
+support for ML-KEM & ML-DSA. It accompanies the paper [Towards ML-KEM & ML-DSA
+on OpenTitan](https://eprint.iacr.org/2024/1192). In the following, we will give
+a description to guide the reader on how to re-run our tests and reproduce the
+results.
 
 ## Getting started
 For setting up the software and testing environment, we generally refer to the
 [guide by the OpenTitan
 team](https://opentitan.org/guides/getting_started/index.html). 
 
-We made good experiences with the setup using Docker on macOS and Linux.
+We made good experiences with the setup using Docker on macOS and Linux for
+running the tests and benchmarks using the Python simulator, as well as running
+the hardware design using Verilator. Running tests on an FPGA requires a setup
+on a native, Linux-based system as the container is not meant to be used for
+this. 
 
 In the case you are using Docker and managed to build and enter the container as
 described
@@ -38,17 +35,34 @@ pip3 install -r python-requirements.txt
 git config --global --add safe.directory /home/dev/src
 ```
 
+In addition to that, it is required to make one manual modification to resolve
+an issue with the dependencies of the OpenTitan repositories. Running the
+following will fail but the directory structure of the build systems's cache
+which is required to proceed with the setup. This is required for the Docker
+setup as well as the native one:
+
+```
+./bazelisk.sh test //sw/otbn/crypto/tests:ed25519_ext_add_test
+```
+
+After that, copy the two files `aux/bazel.py` and `aux/wheel.py` from this repository to
+`~/.cache/bazel/_bazel_<USER>/<HASH>/external/rules_python/python/pip_install/extract_wheels/lib`
+in the docker container/on your machine. 
+
 Now, you are all set up to run the tests as described below. 
 
 ## Relevant files
-
-Our implementation modeling the `bn.mulv{m}` instruction as a multi-cycle one
-can be found in the submodule TODO, while the one
-taking just one cycle can be found in TODO.
-These are also the two submodules containing the modified simulator. The submodule
-TODO contains the hardware design only modified to
-include the KMAC/OTBN interface. TODO contains the ASIC
-synthesis scripts to use with Cadence.
+We provide 4 submodules for our implementations:
+- The submodule [towards-mlkem-and-mldsa-on-opentitan-dev-multi-cycle-bnmulv](https://github.com/PQC-OpenTitan/towards-ml-kem-and-ml-dsa-on-opentitan-dev-multi-cycle-bnmulv/tree/c2f2d734ea1d7dd56c6c54f6b8f4934cccc60943) models the `bn.mulv{m}` instruction as
+a multi-cycle one.
+- The submodule [towards-mlkem-and-mldsa-on-opentitan-dev-single-cycle-bnmulv](https://github.com/PQC-OpenTitan/towards-ml-kem-and-ml-dsa-on-opentitan-dev-single-cycle-bnmulv/tree/ec24f87963e88a22091ce84dfe30069d3ed8dc28) models the `bn.mulv{m}` instruction as
+a single cycle one.
+- The submodule
+[towards-mlkem-and-mldsa-on-opentitan-dev-kmac-only](https://github.com/PQC-OpenTitan/towards-ml-kem-and-ml-dsa-on-opentitan-dev-kmac-only/tree/031eb34126c2ad1253bda0b02b300a5e99fd0e58)
+contains only the hardware changes for the KMAC interface.
+- The submodule
+[towards-mlkem-and-mldsa-on-opentitan-ref-synth](https://github.com/PQC-OpenTitan/towards-ml-kem-and-ml-dsa-on-opentitan-ref-synth/tree/9845efc941acb46869498ca256763b9a12dfe7a0)
+contains the ASIC synthesis scripts to use with Cadence.
 
 Our modifications to the ISA and the Python simulator are mainly reflected in
 the following files:
@@ -108,7 +122,7 @@ Example:
 
 **For ML-KEM**:
 ```
-./bazelisk.sh test --test_timeout=1000 --copt="-DKYBER_K={2,3,4}" --cache_test_results=no --sandbox_writable_path="/home/dev/src" //sw/otbn/crypto/tests:mlkem{512,768,1024}_{keypair,encap,decap}{_,_plain_,_base_}bench
+./bazelisk.sh test --test_timeout=1000 --copt="-DKYBER_K={2,3,4}" --cache_test_results=no --sandbox_writable_path="/home/dev/src" //sw/otbn/crypto/tests:mlkem{512,768,1024}{_,_plain_,_base_}{keypair,encap,decap}_bench
 ```
 The parameters to choose from for the ML-KEM command are highly similar to the
 ones for ML-DSA.
@@ -153,15 +167,22 @@ The means for obtaining the stack benchmarks can be enabled by setting
 keeps track of the stack size in the current execution. For this, also set
 `STACK_SIZE` to the value as it is defined in the respective test under
 `sw/otbn/crypto/tests` (e.g., `sign_dilithium_test.s`). The values in question
-are 128000 for ML-DSA and 20000 for ML-KEM.
+are:
+- 20000 for ML-KEM (Keypair, Encapsulation, Decapsulation)
+- 112000 for ML-DSA Keypair and Verify
+- 51200 for ML-DSA-44 Sign
+- 78848 for ML-DSA-65 Sign
+- 120832 for ML-DSA-87 Sign
+
 
 ## Code size benchmarks
 We provide the full-scheme binary builds for ML-KEM and ML-DSA in
 `sw/otbn/crypto/tests` under the name `{mldsa, mlkem}_{plain_,base_}test.s`. In
-order to obtain the `.elf` output file, the following command is used: For
-ML-KEM:
+order to obtain the `.elf` output file, the following command is used:
+
+**For ML-KEM**:
 ```
-./bazelisk build --copt="-DKYBER_K={2,3,4}" //sw/otbn/crypto/tests:mlkem{_,_plain_,_base_}codesize
+./bazelisk.sh build --copt="-DKYBER_K={2,3,4}" //sw/otbn/crypto/tests:mlkem{_,_plain_,_base_}codesize
 ```
 Then to obtain the code size, we run `size` on the respective
 `mlkem_{_,_base_,_plain_}codesize.elf` file:
@@ -172,13 +193,12 @@ We note that to choose which security level for ML-KEM, the `KYBER_K` parameter
 must be set in the command line above. Then as there is only one binary output
 file, the `size` command must be called after. 
 
-For ML-DSA: 
-The steps are similar for those of ML-KEM, with the following
-commands:
-```
-./bazelisk build --copt="-DDILITHIUM_MODE={2,3,5}" //sw/otbn/crypto/tests:mldsa{_,_plain_,_base_}codesize
-size //path/to/binary/file/mldsa_{_,_base_,_plain_}codesize.elf
+**For ML-DSA**:
 
+The steps are similar for those of ML-KEM, with the following commands:
+```
+./bazelisk.sh build --copt="-DDILITHIUM_MODE={2,3,5}" //sw/otbn/crypto/tests:mldsa{_,_plain_,_base_}codesize
+size //path/to/binary/file/mldsa_{_,_base_,_plain_}codesize.elf
 ```
 
 ## Hardware Synthesis
@@ -186,29 +206,29 @@ We use FuseSoC to generate the necessary build scripts for different targets and
 ```
 fusesoc --cores-root . run --flag=fileset_top --target=${TARGET} --no-export --tool=${TOOL} --setup ${IP}
 ```
-To evaluate our extensions, we added different targets to various ip and synthesized them with Vivado and Genus.
+To evaluate our extensions, we added different targets to various IP and synthesized them with Vivado and Genus.
 
 ### FuseSoC Commands for OTBN Targets
 
 #### BN-ALU
 ```
-fusesoc --cores-root . run --flag=fileset_top --target=syn_bn_alu --no-export --tool=${TOOL} --setup=lowrisc:ip:otbn:0.1
+fusesoc --cores-root . run --flag=fileset_top --target=syn_bn_alu --no-export --tool=${TOOL} --setup lowrisc:ip:otbn:0.1
 ```
 
 #### BN-MAC
 ```
-fusesoc --cores-root . run --flag=fileset_top --target=syn_bn_mac --no-export --tool=${TOOL} --setup=lowrisc:ip:otbn:0.1
+fusesoc --cores-root . run --flag=fileset_top --target=syn_bn_mac --no-export --tool=${TOOL} --setup lowrisc:ip:otbn:0.1
 ```
 
 #### BN-MULV
 
 ```
-fusesoc --cores-root . run --flag=fileset_top --target=syn_bn_mulv --no-export --tool=${TOOL} --setup=lowrisc:ip:otbn:0.1
+fusesoc --cores-root . run --flag=fileset_top --target=syn_bn_mulv --no-export --tool=${TOOL} --setup lowrisc:ip:otbn:0.1
 ```
 
 #### OTBN
 ```
-fusesoc --cores-root . run --flag=fileset_top --target=syn --no-export --tool=${TOOL} --setup=lowrisc:ip:otbn:0.1
+fusesoc --cores-root . run --flag=fileset_top --target=syn --no-export --tool=${TOOL} --setup lowrisc:ip:otbn:0.1
 ```
 
 ### FuseSoC Commands for Top-Earlgrey FPGA Target
@@ -241,21 +261,119 @@ source lowrisc-ip-otbn-0.1._synth.tcl
 ```
 
 ### Synthesis with Genus and ASAP7
-To enable Genus for FuseSoC, it is necessary to install a specific version of edalize manually:
-```
-git clone https://github.com/olofk/edalize
-git checkout origin/dcgenus
-cd edalize
-pip3 install --user -r dev-requirements.txt
-pre-commit install
-pip3 install --user -e .
-
-```
-
-FuseSoC then automatically generates some basic scripts which call custom scripts which have to be development by oneself. We created scripts to run ASIC synthesis with Cadence Genus and the ASAP7 PDK. These scripts reside within *hw/syn/tools/genus* and *hw/ip/otbn/syn*. To use these scripts please install the ASAP7 PDK and adapt all paths (ASAP-7 PDK directory and ${REPO_TOP}) accordingly.
+FuseSoC then automatically generates some basic scripts which call custom scripts which have to be development by oneself. We created scripts to run ASIC synthesis with Cadence Genus and the ASAP7 PDK. These scripts reside within `hw/syn/tools/genus` and `hw/ip/otbn/syn`. To use these scripts please install the ASAP7 PDK and adapt all paths (ASAP-7 PDK directory and ${REPO_TOP}) accordingly.
 
 To evaluate different targets and run synthesis with Cadence Genus run the following commands:
 ```
 cd ${REPO_TOP}/build/${IP}/${TARGET}-${TOOL}
 make
 ```
+
+## UVM Verification
+Our hardware extensions for the OTBN are verified within OpenTitan's UVM framework with Cadence Xcelium as simulator. OTBN's testbench uses a DPI-based OTBN model which wraps the Python ISA simulator as subprocess. This allows to verify that the RTL-code of the OTBN behaves the same as the Python ISA simulator. To run the verification of the extended ISA, the following command can be used:
+
+```
+util/dvsim/dvsim.py hw/ip/otbn/dv/uvm/otbn_sim_cfg.hjson -i pq --verbose
+```
+
+The above command automatically runs a list of tests, namely: `otbn_bnmulv`, `otbn_bnmulvl`, `otbn_bnmulvm`, `otbn_bnmulvml`, `otbn_bnaddv`, `otbn_bnaddvm`, `otbn_bnshv`, `otbn_bntrn`, `otbn_smoke`.
+While `otbn_smoke` verifies the original ISA, the other tests verify our ISA extensions. More details about design verification of the OTBN can be found under [here](https://opentitan.org/book/hw/ip/otbn/dv/index.html#otbn-dv-document).
+
+## FPGA Validation
+Our hardware extensions for the OTBN^{KMAC}\_{Ext} implementation have been validated
+on the CW310 platform. However, the OTBN^{KMAC}\_{Ext++} design exceeds the
+resource capacity of the CW310 and can only be executed on the CW340.
+Additionally, due to the version of OpenTitan on which our project is based, the
+CW340 does not fully support running software with the Bazel toolchain. To work
+around this limitation, software must be built in a separate repository using a
+modified Python simulator, and the resulting binaries are then used within our
+repository to run on the CW340. Therefore, our testing instructions are limited
+to the CW310 platform. We will address this issue and update the instructions.
+
+After setting up the connection of the board with your PC (following this
+[guide](https://opentitan.org/book/doc/getting_started/setup_fpga.html#detecting-the-pc-connections-to-the-boards)),
+you can load the bitstream which resides in ${REPO_TOP}/hw/bitstream/cw310 with
+the following command:
+```
+./bazelisk.sh run //sw/host/opentitantool -- fpga load-bitstream ${REPO_TOP}/hw/bitstream/cw310/lowrisc_systems_chip_earlgrey_cw310_0.1.bit 
+```
+
+### ISA Validation
+To build the bitstream and verify the extended ISA on the CW310, run the command below. To skip the bitstream build, use `--define bitstream=skip`:
+```
+./bazelisk.sh test --define bitstream=skip --cache_test_results=no --test_output=streamed //sw/device/tests:otbn_isa_ext_test_fpga_cw310_test_rom
+```
+
+The above test runs a list of tests on the OTBN and either verifies the output against known testvectors, or computes the reference operation on the main processor (Ibex) and verifies OTBN's output against the reference Ibex implementation.
+
+### KMAC Interface
+To verify the KMAC interface on the CW310, run the following command:
+```
+./bazelisk.sh test --define bitstream=skip --cache_test_results=no --test_output=streamed //sw/device/tests:otbn_kmac_smoketest_fpga_cw310_test_rom
+```
+
+### ML-KEM Validation
+The FPGA tests for ML-KEM {keypair, encap, decap} are structured as follows:
+1. The C reference implementation of an operation (keypair, encap, or decap) from
+   [pq-crystals/kyber](https://github.com/pq-crystals/kyber) is run.
+2. The plain implementation (OTBN) of the corresponding operation of ML-KEM is
+   run. The result is compared with the C results.
+3. The base implementation (OTBN^{KMAC}) of the corresponding operation of ML-KEM is
+   run. The result is compared with the C results.
+4. The ISAEXT implementation (OTBN^{KMAC}_{Ext}) of the corresponding operation
+   of ML-KEM is run. The result is compared with the C results.
+
+To run these tests on CW310, use the following command with the correct parameters:
+```
+./bazelisk.sh test --define  bitstream=skip --copt="-DKYBER_K={2,3,4}" --test_output=streamed //sw/device/tests:otbn_mlkem_{keypair,encap,decap}_test_fpga_cw310_test_rom
+```
+
+### ML-DSA Validation
+The FPGA tests for ML-DSA {keypair, sign, verify} are structured very similarly
+to those of Ml-KEM:
+1. The C reference implementation of an operation (keypair, sign, or verify) from
+   [lowram](https://github.com/dop-amin/dilithium/tree/lowram) is run.
+2. The plain implementation (OTBN) of the corresponding operation of ML-DSA is
+   run. The result is compared with the C results.
+3. The base implementation (OTBN^{KMAC}) of the corresponding operation of ML-DSA is
+   run. The result is compared with the C results.
+4. The ISAEXT implementation (OTBN^{KMAC}_{Ext}) of the corresponding operation
+   of ML-DSA is run. The result is compared with the C results.
+
+To run these tests on CW310, use the following command with the correct parameters:
+```
+./bazelisk.sh test --define  bitstream=skip --copt="-DDILITHIUM_MODE={2,3,5}" --test_output=streamed //sw/device/tests:otbn_mldsa_{keypair,sign,verify}_test_fpga_cw310_test_rom
+```
+
+## Verilator Validation
+All the tests mentioned in **FPGA Validation** can be simulated in Verilator,
+with the following commands:
+
+### ISA Validation
+```
+./bazelisk.sh test --cache_test_results=no --test_output=streamed --test_timeout=100000 //sw/device/tests:otbn_isa_ext_sim_verilator
+```
+
+### KMAC Interface
+```
+./bazelisk.sh test --cache_test_results=no --test_output=streamed --test_timeout=100000 //sw/device/tests:otbn_kmac_smoketest_sim_verilator
+```
+
+### ML-KEM Validation
+```
+./bazelisk.sh test --copt="-DKYBER_K={2,3,4}" --test_output=streamed --test_timeout=100000 //sw/device/tests:otbn_mlkem_{keypair,encap,decap}_test_sim_verilator
+```
+
+### ML-DSA Validation
+```
+./bazelisk.sh test --copt="-DDILITHIUM_MODE={2,3,5}" --test_output=streamed --test_timeout=100000 //sw/device/tests:otbn_mldsa_{keypair,sign,verify}_test_sim_verilator
+```
+
+## Questions
+The software modifications were done by 
+Amin Abdulrahman (amin@abdulrahman.de) and
+Hoang Nguyen Hien Pham (nguyenhien.phamhoang@gmail.com).
+The hardware modifications were done by
+Tobias Stelzer (tobias.stelzer@aisec.fraunhofer.de) and
+Felix Oberhansl (felix.oberhansl@aisec.fraunhofer.de). Please let us know if you
+need help or have any questions.
