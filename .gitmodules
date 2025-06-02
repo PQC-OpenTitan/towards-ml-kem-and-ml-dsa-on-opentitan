@@ -1,6 +1,3 @@
-[submodule "towards-ml-kem-and-ml-dsa-on-opentitan-dev-kmac-only"]
-	path = towards-ml-kem-and-ml-dsa-on-opentitan-dev-kmac-only
-	url = https://github.com/PQC-OpenTitan/towards-ml-kem-and-ml-dsa-on-opentitan-dev-kmac-only.git
 [submodule "towards-ml-kem-and-ml-dsa-on-opentitan-ref-synth"]
 	path = towards-ml-kem-and-ml-dsa-on-opentitan-ref-synth
 	url = https://github.com/PQC-OpenTitan/towards-ml-kem-and-ml-dsa-on-opentitan-ref-synth.git
@@ -10,3 +7,6 @@
 [submodule "towards-ml-kem-and-ml-dsa-on-opentitan-dev-single-cycle-bnmulv"]
 	path = towards-ml-kem-and-ml-dsa-on-opentitan-dev-single-cycle-bnmulv
 	url = https://github.com/PQC-OpenTitan/towards-ml-kem-and-ml-dsa-on-opentitan-dev-single-cycle-bnmulv.git
+[submodule "towards-ml-kem-and-ml-dsa-on-opentitan-dev-kmac-only"]
+	path = towards-ml-kem-and-ml-dsa-on-opentitan-dev-kmac-only
+	url = https://github.com/PQC-OpenTitan/towards-ml-kem-and-ml-dsa-on-opentitan-dev-kmac-only.git
