@@ -377,3 +377,21 @@ The hardware modifications were done by
 Tobias Stelzer (tobias.stelzer@aisec.fraunhofer.de) and
 Felix Oberhansl (felix.oberhansl@aisec.fraunhofer.de). Please let us know if you
 need help or have any questions.
+
+## Bibliography
+When referring to this work, please consider using the following bibTeX excerpt:
+```
+@INPROCEEDINGS {,
+author = { Abdulrahman, Amin and Oberhansl, Felix and Pham, Hoang Nguyen Hien and Philipoom, Jade and Schwabe, Peter and Stelzer, Tobias and Zankl, Andreas },
+booktitle = { 2025 IEEE Symposium on Security and Privacy (SP) },
+title = {{ Towards ML-KEM & ML-DSA on OpenTitan }},
+year = {2025},
+volume = {},
+ISSN = {2375-1207},
+pages = {4044-4062},
+doi = {10.1109/SP61157.2025.00220},
+url = {https://doi.ieeecomputersociety.org/10.1109/SP61157.2025.00220},
+publisher = {IEEE Computer Society},
+address = {Los Alamitos, CA, USA},
+month =May}
+```
