@@ -255,10 +255,11 @@ FuseSoC automatically generates all necessary scripts to run synthesis with Viva
 ```
 cd ${REPO_TOP}/build/${IP}/${TARGET}-${TOOL}
 vivado -mode tcl 
-source lowrisc-ip-otbn-0.1.tcl
-source lowrisc-ip-otbn-0.1._synth.tcl
+source lowrisc_{ip_otbn,systems_chip_earlgrey_cw310,systems_chip_earlgrey_cw340}_0.1.tcl
+source lowrisc_{ip_otbn,systems_chip_earlgrey_cw310,systems_chip_earlgrey_cw340}_0.1_synth.tcl
 
 ```
+The generated reports can be found in the locally generated Vivado project within `${REPO_TOP}/build/${IP}/${TARGET}-${TOOL}/lowrisc_{ip_otbn,systems_chip_earlgrey_cw310,systems_chip_earlgrey_cw340}.runs/synth_1`. The folder hw\_synth\_rpts contains the FPGA synthesis reports for our OTBN^{KMAC}\_{Ext} and OTBN^{KMAC}\_{Ext++} designs, as well as the corresponding Chip-Earlgrey-CW310 designs.
 
 ### Synthesis with Genus and ASAP7
 FuseSoC then automatically generates some basic scripts which call custom scripts which have to be development by oneself. We created scripts to run ASIC synthesis with Cadence Genus and the ASAP7 PDK. These scripts reside within `hw/syn/tools/genus` and `hw/ip/otbn/syn`. To use these scripts please install the ASAP7 PDK and adapt all paths (ASAP-7 PDK directory and ${REPO_TOP}) accordingly.
